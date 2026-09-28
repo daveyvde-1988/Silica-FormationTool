@@ -1,0 +1,318 @@
+{
+  "format": "silica-formations",
+  "version": 3,
+  "grid": {
+    "nodesX": 50,
+    "nodesZ": 50,
+    "snap": 0.5
+  },
+  "coordinates": {
+    "unit": "metres",
+    "relativeTo": "formation.origin",
+    "positiveX": "right",
+    "positiveZ": "forward",
+    "fixedGrid": "screen-right=world+X; screen-up=world+Z"
+  },
+  "formations": [
+    {
+      "name": "Route column",
+      "team": "Sol",
+      "function": "follow",
+      "coordinateSpace": "local-right-forward",
+      "metresPerNode": 20,
+      "directionSensitive": true,
+      "directionDegrees": 0,
+      "origin": {
+        "x": 0,
+        "z": 0
+      },
+      "editor": {
+        "centreGrid": {
+          "x": 0,
+          "z": 0
+        }
+      },
+      "slots": [
+        {
+          "x": -10,
+          "z": -40,
+          "editor": {
+            "grid": {
+              "x": -0.5,
+              "z": -2
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 10,
+          "z": -60,
+          "editor": {
+            "grid": {
+              "x": 0.5,
+              "z": -3
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": -10,
+          "z": -80,
+          "editor": {
+            "grid": {
+              "x": -0.5,
+              "z": -4
+            }
+          },
+          "role": "repair",
+          "preferredUnits": [
+            "Repair Rig"
+          ],
+          "sizeScale": 1
+        },
+        {
+          "x": 10,
+          "z": -100,
+          "editor": {
+            "grid": {
+              "x": 0.5,
+              "z": -5
+            }
+          },
+          "role": "backup",
+          "preferredUnits": [],
+          "sizeScale": 1
+        }
+      ]
+    },
+    {
+      "name": "Line",
+      "team": "Sol",
+      "function": "move",
+      "coordinateSpace": "local-right-forward",
+      "metresPerNode": 20,
+      "directionSensitive": true,
+      "directionDegrees": 0,
+      "origin": {
+        "x": 0,
+        "z": 0
+      },
+      "editor": {
+        "centreGrid": {
+          "x": 0,
+          "z": 0
+        }
+      },
+      "slots": [
+        {
+          "x": -20,
+          "z": 0,
+          "editor": {
+            "grid": {
+              "x": -1,
+              "z": 0
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 20,
+          "z": 0,
+          "editor": {
+            "grid": {
+              "x": 1,
+              "z": 0
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 0,
+          "z": -20,
+          "editor": {
+            "grid": {
+              "x": 0,
+              "z": -1
+            }
+          },
+          "role": "repair",
+          "preferredUnits": [
+            "Repair Rig"
+          ],
+          "sizeScale": 1
+        },
+        {
+          "x": 0,
+          "z": -40,
+          "editor": {
+            "grid": {
+              "x": 0,
+              "z": -2
+            }
+          },
+          "role": "backup",
+          "preferredUnits": [],
+          "sizeScale": 1
+        }
+      ]
+    },
+    {
+      "name": "Line",
+      "team": "Sol",
+      "function": "commander",
+      "coordinateSpace": "local-right-forward",
+      "metresPerNode": 20,
+      "directionSensitive": true,
+      "directionDegrees": 0,
+      "origin": {
+        "x": 0,
+        "z": 0
+      },
+      "editor": {
+        "centreGrid": {
+          "x": 0,
+          "z": 0
+        }
+      },
+      "slots": [
+        {
+          "x": -20,
+          "z": 0,
+          "editor": {
+            "grid": {
+              "x": -1,
+              "z": 0
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 20,
+          "z": 0,
+          "editor": {
+            "grid": {
+              "x": 1,
+              "z": 0
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 0,
+          "z": -20,
+          "editor": {
+            "grid": {
+              "x": 0,
+              "z": -1
+            }
+          },
+          "role": "repair",
+          "preferredUnits": [
+            "Repair Rig"
+          ],
+          "sizeScale": 1
+        },
+        {
+          "x": 0,
+          "z": -40,
+          "editor": {
+            "grid": {
+              "x": 0,
+              "z": -2
+            }
+          },
+          "role": "backup",
+          "preferredUnits": [],
+          "sizeScale": 1
+        }
+      ]
+    },
+    {
+      "name": "Attack line",
+      "team": "Sol",
+      "function": "attack",
+      "coordinateSpace": "local-right-forward",
+      "metresPerNode": 20,
+      "directionSensitive": true,
+      "directionDegrees": 0,
+      "origin": {
+        "x": 0,
+        "z": 0
+      },
+      "editor": {
+        "centreGrid": {
+          "x": 0,
+          "z": 0
+        }
+      },
+      "slots": [
+        {
+          "x": -20,
+          "z": -60,
+          "editor": {
+            "grid": {
+              "x": -1,
+              "z": -3
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 20,
+          "z": -60,
+          "editor": {
+            "grid": {
+              "x": 1,
+              "z": -3
+            }
+          },
+          "role": "top",
+          "preferredUnits": [],
+          "sizeScale": 1
+        },
+        {
+          "x": 0,
+          "z": -80,
+          "editor": {
+            "grid": {
+              "x": 0,
+              "z": -4
+            }
+          },
+          "role": "repair",
+          "preferredUnits": [
+            "Repair Rig"
+          ],
+          "sizeScale": 1
+        },
+        {
+          "x": 0,
+          "z": -100,
+          "editor": {
+            "grid": {
+              "x": 0,
+              "z": -5
+            }
+          },
+          "role": "backup",
+          "preferredUnits": [],
+          "sizeScale": 1
+        }
+      ]
+    }
+  ]
+}
