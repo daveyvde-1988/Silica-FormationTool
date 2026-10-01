@@ -12,7 +12,7 @@ Direction is set by dragging the arrow; the degrees field is removed. Direction 
 
 Copy selected nodes with Ctrl+C (Cmd+C on macOS), and paste with Ctrl+V, or use Copy nodes / Paste nodes for the editor's internal clipboard. Copies preserve relative positions, preferences and unit choices, get fresh IDs, and appear with a half-grid offset per paste constrained by the grid boundary. Cross-team pasting drops unavailable units. Native shortcuts also work between editor windows; text-field copy/paste stays normal. Auto-preference recalculates pasted preferences when enabled. At the grid edge a paste can overlap its source; drag the selected copy into place.
 
-Export ZIP downloads one silica-formations.zip archive containing the version-3 silica-formations.json. Extract that JSON for the mod or to load it back into the editor. The separate Include PNG images checkbox (initially checked) optionally adds one PNG per formation, including manually placed layouts. Uncheck it for a ZIP containing only the JSON; no images are generated. PNGs are cropped around visible dot edges with a small margin and use names such as Move_Sol_Triangle.png. Invalid filename characters are replaced; duplicate names receive numeric suffixes. The centre marker is included only if inside the crop. Images omit selection outlines and are independent of view zoom. All files are packaged before the single download is requested, avoiding browser limits on repeated downloads. An image error aborts export with its filename instead of downloading an incomplete archive. ZIP creation works offline without external libraries; files are stored without additional compression. An empty formation gets a small centre-only preview.
+Export ZIP downloads one silica-formations.zip containing version-3 silica-formations.json for all teams. Extract that JSON for the mod or load it back into the editor. PNG image export and its checkbox have been removed. ZIP creation works offline without external libraries.
 
 ## Grid editing
 
@@ -102,31 +102,29 @@ The gradient follows the convex outer envelope of the current dot layout, indepe
 | Yellow | 1 | Backup tier |
 | Orange | 2 | Less preferred tier |
 | Red | 4 | Least preferred numeric tier |
-| Red (existing legacy value) | 3 | Preserved between 2 and 4; never silently renumbered |
+| Red (existing legacy value) | 3 | Same red tier as 4; saved value preserved |
 
 The Priority dropdown has been removed for single and multiple selections. The separate Distance preference control remains for manual editing. Turning Auto-preference off retains assigned values. Existing value 3 is displayed explicitly as a legacy red level and remains available in the inspector when selected. New placement and automatic assignment use the four main levels. Preferred-unit checkboxes still operate independently; they break ties within a position tier in-game. A unit checkbox is not a replacement for position ranking.
 
-Existing role fields are preserved on import/export because the runtime still requires them and uses them for slots without a numeric preference. Those legacy slots keep their original role colors and unit-dependent ranking, with an inspector explanation. They are not silently converted by opening a file. Choosing a numeric value or enabling Auto-preference is the explicit conversion action; even then the original role remains saved as compatibility data. New nodes use role top plus a numeric preference. Preferred-unit assignments and their derived sizes remain unchanged.
+Existing role fields are preserved on import/export because the runtime still requires them and uses them for slots without a numeric preference. Those legacy slots retain their role colours; the runtime converts top/backup/last to green/yellow/orange tiers. They are not silently converted by opening a file. Choosing a numeric value or enabling Auto-preference is the explicit conversion action; even then the original role remains saved as compatibility data. New nodes use role top plus a numeric preference. Preferred-unit assignments and their derived sizes remain unchanged.
 
-Version 3 JSON retains slots[].preference (integer 0–4), editor.autoPreference (boolean), and now saves editor.autoPreferenceGradient (0–100). Gradient metadata is ignored by the runtime. Opening a file never recalculates or assigns node preferences, even if auto mode was saved enabled. A missing gradient setting defaults to 50 without applying it. The existing optional numeric format already works with deployed Si_Formation 2.3.1; no runtime changes or rebuild were necessary for this editor update.
+Version 3 JSON retains slots[].preference (integer 0–4), editor.autoPreference (boolean), and now saves editor.autoPreferenceGradient (0–100). Gradient metadata is ignored by the runtime. Opening a file never recalculates or assigns node preferences, even if auto mode was saved enabled. A missing gradient setting defaults to 50 without applying it. The optional numeric format remains compatible; strict whole-group colour filling requires Si_Formation 2.5.0.
 
 **Compatibility:** numeric preferences require Si_Formation 2.3.1 or later. Older mods ignore that field and use the saved legacy roles. The approved runtime compatibility change validates the optional field and uses it as the candidate priority tier, independently of whether the unit can repair. Without it, original role ranking is unchanged. Preferred-unit matching still breaks ties within the tier, then stable slot order. No formation JSON in UserData was edited.
 
-Obstructed candidates still lead to later ranked candidate attempts; a numeric preference is a ranking, not an eligibility filter. The existing runtime bounds remain: at most six terrain projections per unit per attempt, up to 256 ranked candidates for a one-shot move and 128 for follow. A complete one-shot placement failure can still leave the entire order to vanilla, and failed follow slots retain native follow. This editor change does not remove those existing limits or promise fallback beyond them.
+Si_Formation 2.5.0 assigns across the whole selected group, exhausting green, then yellow, orange and red. A staged search replaces the old first-six/128/256 candidate cutoffs. Unit-specific navigation/spacing rejection does not make a position unavailable to other units. Successful assignments persist through up to three complete retry passes; retries do not correspond to colours. See the mod README for scheduler and navigation limits.
 
-## Verification for this update
+## Tactical fill
 
-The editor is static HTML/JavaScript and has no bundler or compiled artifact. All three JavaScript files passed syntax compilation. No behavioral, browser or in-game tests were run for this update; the user handles testing. Earlier generated example JSON files were left untouched, including their saved values and any centre nodes. Centre exclusion applies to newly generated filled layouts, not existing layouts merely opened from disk.
+Tactical fill replaces Tactical shape. It creates symmetric left/right pairs about the centre's vertical grid axis, leaving the centre empty. Odd counts can use axis positions. The Size slider stays enabled; Fill shape and Tactical fill are mutually exclusive. Space/boundary limits can reduce the requested count instead of breaking symmetry or stacking dots. As before, press Generate first to enable live shape updates.
 
-Files changed: index.html, editor.js, core.js, shapes.js, README.md. No mods, installed DLLs or live JSON configuration were changed.
+## Auto backup positions and physical footprints
 
-Please verify the gradient at 0/50/100 and intermediate positions; manual and generated node updates; saved metadata and values reopening unchanged; auto-off manual edits; legacy roles/value 3 and preferred units remaining intact; filled shapes with odd/even counts, dense grids and an off-centre origin; compact automatic sizing, optional centre nodes and no duplicate positions. In-game, check green before yellow before orange before red for both ordinary and repair units, including occupied/obstructed alternatives and preferred-unit ties.
+**Auto backup positions** adds yellow one grid interval and orange two intervals opposite the arrow direction from each green dot. Unit/type preferences are copied. It then adds unrestricted red positions beside the green/yellow/orange positions, preferring the outward side and trying the other side if occupied. Existing positions are retained. Boundary/occupied locations and the 4096-position limit are reported as skips. Automatic colour gradients are turned off. **Undo backup positions** restores the layout before the button was used.
 
-Runtime limitation remains unchanged: candidate search is bounded (six terrain projections per unit per attempt), so a complete placement failure can still fall back to native orders. The editor cannot eliminate that fallback, and no runtime change was made.
+**Load game footprints** reads the updated mod's UserData/Formations_cfg/metadata/footprints.json, written after the server initializes game definitions. It contains actual cached local physical bounds. The editor remembers imported measurements when browser storage is available. A specific unit shows its width/length; several units or a category show the maximum width and maximum length among their preferred units. Missing measurements and unrestricted positions have a labelled dashed generic 8 × 4 m footprint, not invented game measurements. Metres per grid position immediately changes the rendered width/length. The existing dot still marks the assigned centre.
 
-### Tactical shape
-
-Tactical shape is the checkbox directly below Fill shape. It restores the previous manually sized fill: dots are spread throughout the shape, the snapped centre stays empty, and the existing overlap-aware packing is retained. The Size slider remains enabled. Fill shape and Tactical shape are mutually exclusive; leaving both unchecked generates an outline/path. Both area modes are disabled for line and staggered line. As with other shape controls, press Generate first; changes update an active generated shape live. Tactical mode may need a larger size or fewer dots if overlap is reported.
+Editor logic checks and production allocator checks live in the mod's PriorityChecks directory. No browser or live-game validation is implied by these checks.
 
 ## In-game menu numbering (future mod integration)
 
@@ -136,14 +134,14 @@ Use In-game menu number in Settings to assign an exact option from /2 through /9
 
 Version 3 adds top-level menu: {"defaultOption":1,"defaultLabel":"default"} and formations[].menuOrder (integer 2–9999). Export includes all teams/functions and preserves numbers; loading rejects invalid or duplicate numbers within a team/function. Legacy files without numbers get the lowest free numbers in document order, after reserving explicit numbers. This changes only menu metadata, not geometry or slot priorities. Uniqueness across separate exported files must also be checked by the future mod loader.
 
-The deployed mod does not yet honor menuOrder or the reserved /1 entry. Use MOD_MENU_ORDER_PROMPT.md as the next implementation request.
+The current mod reads menuOrder and reserves /1; duplicate numbers are rejected across loaded files.
 
 
 ## Unit and type preferences
 
-Select one or more dots to edit **Preferred unit types** and the existing **Preferred units** checkboxes. Individual units are grouped by the installed game's actual UnitType. Type and individual selections supplement each other. Within a dot priority tier, the mod ranks individual matches first, then type matches, unrestricted dots, and nonmatching fallback dots. Repair is an ordinary preference; legacy repair/purple roles are migrated on import to top/backup plus Repair, preserving numeric priorities.
+Select one or more dots to edit **Preferred unit types** and the existing **Preferred units** checkboxes. Individual units are grouped by the mod's formation categories. Anti-air, Scout and Artillery are separate; the requested vehicle mappings are listed in the mod README. Unlisted units retain their native category. Harvester is not selectable and is removed from legacy preferences when loaded. Type and individual selections supplement each other. Within a dot priority tier, the mod ranks individual matches first, then type matches, unrestricted dots, and nonmatching fallback dots. Repair is an ordinary preference; legacy repair/purple roles are migrated on import to top/backup plus Repair, preserving numeric priorities.
 
-One checked preference shows a tactical game icon on the dot (representative unit artwork for a type). Two or more checked preferences show `+`. Hover a dot to read its selections. Icons also appear in PNG exports. The colored border continues to show priority. New JSON exports contain optional `preferredTypes` arrays and retain `preferredUnits`; older JSON imports remain supported. Use the updated DLL for type preferences.
+One checked preference shows a tactical game icon on the dot (representative unit artwork for a type). Two or more checked preferences show `+`. Hover a dot to read its selections. The colored border continues to show priority. New JSON exports contain optional `preferredTypes` arrays and retain `preferredUnits`; older JSON imports remain supported. Use the updated DLL for type preferences.
 
 `game-icons.js` embeds icons and unit classifications extracted from the locally installed Silica client. Artwork belongs to the game's rights holders. Keep this file with the offline editor. No client files are modified and no external icon download is needed.
 
@@ -153,4 +151,7 @@ The right sidebar's **Formation preferences** section has **Clear all preference
 
 Double-click a node to replace the selection with all nodes in the current formation having the same effective priority level. This includes equivalent legacy roles and numeric priorities; individual/type choices do not affect the match. The shortcut is documented in the right sidebar. Dragging does not trigger it.
 
-Right-sidebar sections can be expanded/collapsed using their headings, including Grid Zoom, Formation preferences, Selected nodes / position, Priority, Preferred unit types, Preferred individual units, and Coordinates. Open/closed state is retained during the current editor session.
+All left- and right-sidebar sections can be expanded/collapsed using their headings, including Grid Zoom, Formation preferences, Selected nodes / position, Priority, Preferred unit types, Preferred individual units, and Coordinates. Open/closed state is retained during the current editor session.
+
+
+The shared Exclusive checkbox in Unit and type exclusivity reserves selected dots for checked individual units OR checked unit types. Both lists can be used together. With neither, the dot stays empty. Saved as forceExclusive in JSON; requires the updated Si_Formation build. Copy/import/export and yellow/orange backups preserve it; red backups remain unrestricted. Clear all preferences clears exclusivity.

@@ -25,7 +25,7 @@ function titles(){let f=current();const visible=formations.some(matchesFilter);
  document.querySelectorAll('.side > .section').forEach(section=>{if(!section.contains($('formationList'))&&!section.contains($('export')))section.hidden=!visible});
  document.querySelector('.workspace').style.visibility=visible?'':'hidden';document.querySelector('.inspector').style.visibility=visible?'':'hidden';
  $('duplicateFormation').disabled=!visible;$('deleteFormation').disabled=!visible;$('formationList').disabled=!visible;
-$('formationList').replaceChildren(...formations.map((v,i)=>({v,i})).filter(({v})=>matchesFilter(v)).sort((a,b)=>a.v.menuOrder-b.v.menuOrder||a.i-b.i).map(({v,i})=>new Option(`/${v.menuOrder} ${v.name||'Unnamed formation'} · ${v.team} · ${v.type}`,i)));const reserved=new Option('/1 default — reserved for future mod','reserved');reserved.disabled=true;$('formationList').prepend(reserved);if(!visible)$('formationList').append(new Option('No formations match these filters',''));else $('formationList').value=active;$('heading').textContent=f.name||'Unnamed formation';$('command').textContent=`Chat: /${f.type}formation "${f.name}"`}
+$('formationList').replaceChildren(...formations.map((v,i)=>({v,i})).filter(({v})=>matchesFilter(v)).sort((a,b)=>a.v.menuOrder-b.v.menuOrder||a.i-b.i).map(({v,i})=>new Option(`/${v.menuOrder} ${v.name||'Unnamed formation'} · ${v.team} · ${v.type}`,i)));const reserved=new Option('/1 default — reserved for Vanilla','reserved');reserved.disabled=true;$('formationList').prepend(reserved);if(!visible)$('formationList').append(new Option('No formations match these filters',''));else $('formationList').value=active;$('heading').textContent=f.name||'Unnamed formation';$('command').textContent=`Chat: /${f.type}formation "${f.name}"`}
 function menu(){let f=current();titles();$('formationName').value=f.name;$('menuOrder').value=f.menuOrder;$('team').value=f.team;$('kind').value=f.type;$('metresPerNode').value=f.metresPerNode;$('directionSensitive').checked=f.directionSensitive;}
 // One SVG geometry defines the visible grid and the snap locations.
 const grid=el('g',{'pointer-events':'none','aria-hidden':'true'});
@@ -33,7 +33,13 @@ let lines='',crosses='';for(let k=-25;k<=24;k++){lines+=`M ${k} -24 L ${k} 25 M 
 grid.append(el('path',{d:lines,fill:'none',stroke:'#62666c','stroke-width':'.025'}),el('path',{d:crosses,fill:'none',stroke:'#b8bbc0','stroke-width':'.05'}));
 const layer=el('g');$('drawing').append(grid,layer);
 function draw(){let f=current(),o=f.origin;layer.replaceChildren();
+  for(const s of f.slots){
+    const fp=FormationFootprints.footprint(s,f.team),w=fp.width/f.metresPerNode,h=fp.length/f.metresPerNode;
+    const box=el('rect',{x:s.x-w/2,y:-s.z-h/2,width:w,height:h,fill:C.appearance(s).color,'fill-opacity':'.14',stroke:C.appearance(s).color,'stroke-opacity':'.6','stroke-width':'.035','stroke-dasharray':fp.generic?'.15 .1':'none','pointer-events':'none',transform:'rotate('+(f.directionSensitive?f.directionDegrees:0)+' '+s.x+' '+(-s.z)+')'});
+    layer.append(box);
+  }
   f.slots.forEach(s=>{let c=el('circle',{cx:s.x,cy:-s.z,r:.45*sizeScale(s.preferredUnits),fill:C.appearance(s).color,class:`slot${selected.has(s.id)?' selected':''}`});c.dataset.target='slot';c.dataset.id=s.id;let t=el('title'),p=relative(s,f);t.textContent=`${C.appearance(s).label} · X ${p.x} m, Z ${p.z} m${s.preferredUnits.length?' · '+s.preferredUnits.join(', '):''}`;c.append(t);layer.append(c);
+    t.textContent+=' · '+FormationFootprints.footprint(s,f.team).label;
     const marker=C.preferenceMarker(s,f.team);
     if(marker){
       t.textContent+=' · '+marker.label;
@@ -46,7 +52,7 @@ function draw(){let f=current(),o=f.origin;layer.replaceChildren();
   let p=el('path',{d:`M ${o.x-.3} ${-o.z-.3} L ${o.x+.3} ${-o.z+.3} M ${o.x+.3} ${-o.z-.3} L ${o.x-.3} ${-o.z+.3}`,stroke:'#ff8fba','stroke-width':'.2','stroke-linecap':'round',class:'marker'});p.dataset.target='origin';let t=el('title');t.textContent='Move centre · X 0 m, Z 0 m';p.append(t);layer.append(p);
 }
 function updatePosition(){const s=current().slots.find(s=>selected.has(s.id));if(!s)return;const p=relative(s,current());for(const axis of ['X','Z'])if($('slot'+axis))$('slot'+axis).value=p[axis.toLowerCase()]}
-function sizeText(s){return `Dot size: ${sizeScale(s.preferredUnits)===.5?'half':sizeScale(s.preferredUnits)===2?'double':'normal'}`}
+function sizeText(s){const fp=FormationFootprints.footprint(s,current().team);return fp.label+' · '+(fp.length/current().metresPerNode).toFixed(2)+' × '+(fp.width/current().metresPerNode).toFixed(2)+' grid positions'}
 function multipleDetails(slots,d){
  const f=current();
  d.innerHTML='<h2>'+slots.length+' DOTS SELECTED</h2><p class="small">Drag any selected dot to move the group. Shift-click a dot to add or remove it.</p><h2 style="margin-top:18px">PREFERRED UNITS · '+esc(f.team.toUpperCase())+'</h2><p class="small">A partial check means only some selected dots prefer that unit. Check to add it to all selected dots; uncheck to remove it from all.</p><div class="unit-list">'+units[f.team].map(u=>'<label class="unit-choice"><input type="checkbox" data-unit="'+esc(u)+'">'+esc(u)+'</label>').join('')+'</div><button id="removeGroup" class="warn wide" style="margin-top:15px">Delete selected dots</button>';
@@ -129,7 +135,7 @@ function pasteNodes(data=nodeClipboard){
  const shift=++pasteNumber*.5;
  const offset=axis=>Math.max(-25-Math.min(...slots.map(s=>s[axis])),Math.min(shift,24-Math.max(...slots.map(s=>s[axis]))));
  const dx=offset('x'),dz=offset('z');
- const added=slots.map(s=>({id:id(),x:s.x+dx,z:s.z+dz,role:s.role,...(C.hasPreference(s)?{preference:s.preference}:{}),preferredUnits:s.preferredUnits.filter(u=>units[f.team].includes(u))}));
+ const added=slots.map(s=>({id:id(),x:s.x+dx,z:s.z+dz,forceExclusive:s.forceExclusive===true,role:s.role,...(C.hasPreference(s)?{preference:s.preference}:{}),preferredUnits:s.preferredUnits.filter(u=>units[f.team].includes(u)),preferredTypes:(s.preferredTypes||[]).filter(t=>C.unitTypes.includes(t))}));
  f.slots.push(...added);selected=new Set(added.map(s=>s.id));geometryChanged();setMode('select');draw();details();
  status('Pasted '+added.length+' nodes.'+(data.team!==f.team?' Unit choices unavailable for this team were removed.':''));
 }
@@ -166,23 +172,13 @@ $('metresPerNode').onchange=e=>{const n=Number(e.target.value);if(!Number.isFini
 function download(blob,name){const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 $('export').onclick=async()=>{
  if(formations.some(f=>!f.name.trim())){status('Give every formation a name before exporting.',true);return}
- const snapshot=structuredClone(formations),includeImages=$('exportImages').checked;$('export').disabled=true;
+ const snapshot=structuredClone(formations);$('export').disabled=true;
  try{
   const entries=[{name:'silica-formations.json',blob:new Blob([JSON.stringify(C.exportDocument(snapshot),null,2)+'\n'],{type:'application/json'})}];
-  if(includeImages){
-   const names=new Set();
-   for(let i=0;i<snapshot.length;i++){
-    const f=snapshot[i];status('Preparing image '+(i+1)+' / '+snapshot.length+'…');
-    const base=FormationImages.filename(f);let name=base,suffix=2;
-    while(names.has(name.toLowerCase()))name=base.slice(0,-4)+'_'+(suffix++)+'.png';names.add(name.toLowerCase());
-    try{entries.push({name,blob:await FormationImages.png(f)})}
-    catch(error){throw Error('Image '+name+': '+error.message)}
-   }
-  }
-  status('Packaging '+snapshot.length+' formations'+(includeImages?' and '+snapshot.length+' PNGs':'')+'…');
+  status('Packaging '+snapshot.length+' formations…');
   const archive=await FormationZip.create(entries);
   download(archive,'silica-formations.zip');
-  status('ZIP download requested: JSON with '+snapshot.length+' formations'+(includeImages?' and '+snapshot.length+' PNG images.':'.'));
+  status('ZIP download requested: JSON with '+snapshot.length+' formations'+'.');
  }catch(error){status('Export failed: '+error.message+'. No ZIP was downloaded.',true)}
  finally{$('export').disabled=false}
 };$('import').onclick=()=>$('fileInput').click();$('fileInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=C.importDocument(JSON.parse(await file.text()));formations=parsed;active=0;selected.clear();refresh();status(`Loaded ${parsed.length} formation${parsed.length===1?'':'s'}.`)}catch(err){status(`Could not load JSON: ${err.message}`,true)}finally{e.target.value=''}};
@@ -205,7 +201,7 @@ function syncShapeControls(){
  $('shapeFill').disabled=!fillable;$('shapeTactical').disabled=!fillable;
  if(!fillable){$('shapeFill').checked=false;$('shapeTactical').checked=false}
  const type=$('shapeType').value;
- $('shapeFillHint').textContent=!fillable?'This path has no area to fill; nodes follow the line.':$('shapeTactical').checked?'Tactical shape uses the Size slider and spreads dots across the interior, excluding the centre.':type==='arc'?'Outline: open 120° arc. Fill: 120° circular sector.':type==='semi-circle'?'Outline: open 180° curve. Fill: half-disc.':'Fill automatically sizes a compact layout with neighboring dots close together.';
+ $('shapeFillHint').textContent=!fillable?'This path has no area to fill; nodes follow the line.':$('shapeTactical').checked?'Tactical fill uses the Size slider and places symmetric pairs inside the shape, excluding the centre.':type==='arc'?'Outline: open 120° arc. Fill: 120° circular sector.':type==='semi-circle'?'Outline: open 180° curve. Fill: half-disc.':'Fill automatically sizes a compact layout with neighboring dots close together.';
  $('shapeSize').disabled=$('shapeFill').checked;
  $('shapeSizeValue').textContent=$('shapeSize').value+($('shapeFill').checked?' (automatic)':'');
 }
@@ -238,12 +234,22 @@ function renderDetails(){
  typeSection.querySelectorAll('[data-unit-type]').forEach(cb=>{
    const type=cb.dataset.unitType,count=slots.filter(s=>(s.preferredTypes||[]).includes(type)).length;
    cb.checked=count===slots.length;cb.indeterminate=count>0&&count<slots.length;
-   cb.onchange=()=>{slots.forEach(s=>{s.preferredTypes=C.unitTypes.filter(t=>t===type?cb.checked:(s.preferredTypes||[]).includes(t))});cb.indeterminate=false;draw()};
+   cb.onchange=()=>{slots.forEach(s=>{s.preferredTypes=C.unitTypes.filter(t=>t===type?cb.checked:(s.preferredTypes||[]).includes(t))});cb.indeterminate=false;draw();if(slots.length===1&&$('sizeInfo'))$('sizeInfo').textContent=sizeText(slots[0])};
  });
  // Group the existing individual checkboxes by the installed game's actual UnitType.
- const unitList=d.querySelector('.unit-list:not(section .unit-list)');
+ const unitList=d.querySelector('[data-unit]')?.closest('.unit-list');
  if(unitList){
-   const labels=[...unitList.querySelectorAll('.unit-choice')];
+   const exclusiveBox=document.createElement('div');exclusiveBox.id='exclusivePreferences';
+   const exclusive=document.createElement('label');exclusive.className='unit-choice';
+   const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.id='forceExclusive';
+   checkbox.checked=slots.every(s=>s.forceExclusive===true);
+   checkbox.indeterminate=slots.some(s=>s.forceExclusive===true)&&!checkbox.checked;
+   checkbox.onchange=()=>{slots.forEach(s=>s.forceExclusive=checkbox.checked);checkbox.indeterminate=false;draw()};
+   exclusive.append(checkbox,document.createTextNode('Exclusive — selected units or types'));
+   const exclusiveHint=document.createElement('p');exclusiveHint.className='hint';
+   exclusiveHint.textContent='Shared by both preference lists: only a selected individual unit OR a selected unit type may use these dots. With no preference selected, an exclusive dot stays empty.';
+   exclusiveBox.append(exclusive,exclusiveHint);d.append(exclusiveBox);
+   const labels=[...unitList.querySelectorAll('.unit-choice')].filter(label=>label.querySelector('[data-unit]'));
    for(const type of [...C.unitTypes,'Other']){
      const matching=labels.filter(label=>(C.metadata[current().team+'|'+label.querySelector('input').dataset.unit]?.type||'Other')===type);
      if(!matching.length)continue;
@@ -271,16 +277,17 @@ function details(){
  const d=$('details'),priority=$('slotPreference')?.closest('label');
  if(!priority)return;
  const types=d.querySelector('section'),individual=d.querySelector('[data-unit]')?.closest('.unit-list');
- priority.remove();types?.remove();individual?.remove();
+ const exclusivity=d.querySelector('#exclusivePreferences');
+ priority.remove();types?.remove();individual?.remove();exclusivity?.remove();
  d.querySelectorAll(':scope > h2').forEach(h=>{if(h.textContent.startsWith('PREFERRED UNITS'))h.remove()});
  types?.querySelector('h2')?.remove();
  const remaining=[...d.childNodes];d.replaceChildren();
  const shortcut=document.createElement('p');shortcut.className='hint';shortcut.textContent='Double-click a node to select every node with the same priority level. Unit and unit-type checkboxes do not affect this selection.';
- const groups=[['position','Selected nodes / position',remaining],['priority','Priority',[priority,shortcut]],['types','Preferred unit types',types?[...types.childNodes]:[]],['units','Preferred individual units',individual?[individual]:[]]];
+ const groups=[['position','Selected nodes / position',remaining],['priority','Priority',[priority,shortcut]],['exclusive','Unit and type exclusivity',exclusivity?[exclusivity]:[]],['types','Preferred unit types',types?[...types.childNodes]:[]],['units','Preferred individual units',individual?[individual]:[]]];
  for(const [key,title,nodes] of groups){const fold=foldSection(key,title,nodes);fold.dataset.foldKey=key;d.append(fold)}
 }
 function setupInspector(){
- document.querySelectorAll('.inspector > .section:not(#details)').forEach((section,index)=>{
+ document.querySelectorAll('.side > .section, .inspector > .section:not(#details)').forEach((section,index)=>{
    const title=section.querySelector('h2');if(!title)return;
    const text=title.textContent;title.remove();section.append(foldSection('static-'+index,text,[...section.childNodes]));
  });
@@ -289,7 +296,7 @@ function setupInspector(){
  const note=document.createElement('p');note.className='hint';note.textContent='Current formation only: clears all unit/type choices, sets every node to equal priority 0, and turns auto-preference off. Double-click a node to select all nodes with the same priority level (color), regardless of unit choices.';
  clear.onclick=()=>{
    cancelShapeSession();const f=current();f.autoPreference=false;
-   f.slots.forEach(s=>{s.preference=0;s.role='top';s.preferredUnits=[];s.preferredTypes=[]});
+   f.slots.forEach(s=>{s.preference=0;s.role='top';s.preferredUnits=[];s.preferredTypes=[];s.forceExclusive=false});
    syncShapeControls();draw();details();status('Cleared all preferences in '+f.name+'. All nodes now have equal priority.');
  };
  section.append(foldSection('formation-preferences','Formation preferences',[clear,note]));
@@ -304,5 +311,15 @@ $('undoShape').onclick=()=>{if(!shapeUndo||shapeUndo.formation!==current())retur
 $('autoPreference').onchange=e=>{current().autoPreference=e.target.checked;syncShapeControls();if(e.target.checked)C.applyAutoPreference(current());draw();details();status(e.target.checked?'Distance preferences assigned to all dots. Requires Si_Formation 2.3.1+.':'Auto-preference off. Existing values are retained and editable.');};
 
 $('preferenceGradient').oninput=e=>{const f=current();f.autoPreferenceGradient=Math.max(0,Math.min(100,Number(e.target.value)));$('gradientValue').textContent=f.autoPreferenceGradient+' / 100';if(f.autoPreference){C.applyAutoPreference(f);draw();details()}};
+let backupUndo=null;
+$('autoBackups').onclick=()=>{
+ const f=current();cancelShapeSession();backupUndo={formation:f,slots:structuredClone(f.slots),autoPreference:f.autoPreference};
+ const result=C.autoBackups(f);selected=new Set(result.added.map(s=>s.id));$('undoBackups').disabled=false;
+ syncShapeControls();draw();details();status('Added '+result.added.length+' backup positions; '+result.skipped+' skipped (occupied, boundary or 4096-position limit).');
+};
+$('undoBackups').onclick=()=>{if(!backupUndo||backupUndo.formation!==current()){status('Return to the formation where backups were added.',true);return}current().slots=backupUndo.slots;current().autoPreference=backupUndo.autoPreference;backupUndo=null;$('undoBackups').disabled=true;selected.clear();syncShapeControls();draw();details()};
+$('loadFootprints').onclick=()=>$('footprintInput').click();
+$('footprintInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text()),count=FormationFootprints.load(data);try{localStorage.setItem('silica-footprints-v1',JSON.stringify(data))}catch{}$('footprintStatus').textContent=count+' measured unit footprints loaded.';draw();details()}catch(err){status('Footprints: '+err.message,true)}finally{e.target.value=''}};
+try{const saved=localStorage.getItem('silica-footprints-v1');if(saved){const count=FormationFootprints.load(JSON.parse(saved));$('footprintStatus').textContent=count+' measured unit footprints restored.'}}catch{}
 setupInspector();formations=[sample()];refresh();setMode('select');
 })();

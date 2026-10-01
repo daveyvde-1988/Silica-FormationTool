@@ -5,10 +5,12 @@
     Centauri: ['Militia','Trooper','Marksman','Juggernaut','Templar','Light Raider','Heavy Raider','Assault Car','Flak Truck','Repair Truck','Strike Tank','Squad Transport','Combat Tank','Heavy Tank','Rocket Truck','Pyro Tank','Crimson Tank','Dreadnought','Interceptor','Shuttle','Freighter'],
     Alien: ['Crab','Horned Crab','Shocker','Wasp','Dragonfly','Squid','Hunter','Behemoth','Scorpion','Firebug','Goliath','Defiler','Colossus']
   };
-  const unitTypes=['Infantry','Cavalry','Tank','Siege','Aircraft','Transport','Harvester','Special','Repair'];
+  const unitTypes=['Infantry','Cavalry','Tank','Siege','Aircraft','Transport','Anti-air','Scout','Artillery','Special','Repair'];
   const metadata=root.FormationUnitMetadata||{};
+  const categoryOverrides={"Anti-air":["AA Truck","Flak Truck"],"Scout":["Light Quad","Heavy Quad","Light Raider","Heavy Raider"],"Cavalry":["Light Striker","Heavy Striker","Strike Tank","Assault Car","Scorpion"],"Tank":["Hover Tank","Railgun Tank","Combat Tank","Heavy Tank","Behemoth"],"Siege":["Siege Tank","Crimson Tank","Goliath"],"Artillery":["Barrage Truck","Rocket Truck"],"Special":["Pulse Truck","Pyro Tank"],"Transport":["Platoon Hauler","Squad Transport"],"Repair":["Repair Rig","Repair Truck"]};
+  for(const [category,names] of Object.entries(categoryOverrides))for(const [key,value] of Object.entries(metadata))if(names.includes(key.split('|')[1]))value.type=category;
   function migrateSlot(s){
-    s.preferredTypes=[...new Set(s.preferredTypes||[])];
+    s.preferredTypes=[...new Set((s.preferredTypes||[]).filter(t=>t!=='Harvester'))];
     if(s.role==='repair'||s.role==='purple'){
       if(!s.preferredTypes.includes('Repair'))s.preferredTypes.push('Repair');
       s.role=s.role==='repair'?'top':'backup';
@@ -92,7 +94,7 @@
     return formations;
   }
   function exportFormation(f) {
-    return {name:f.name,team:f.team,function:f.type,menuOrder:f.menuOrder,coordinateSpace:f.directionSensitive?'local-right-forward':'world-xz',metresPerNode:f.metresPerNode,directionSensitive:f.directionSensitive,directionDegrees:f.directionDegrees,origin:{x:0,z:0},editor:{centreGrid:{...f.origin},autoPreference:!!f.autoPreference,autoPreferenceGradient:gradientValue(f)},slots:f.slots.map(s=>({...relative(s,f),editor:{grid:{x:s.x,z:s.z}},role:s.role,...(hasPreference(s)?{preference:s.preference}:{}),preferredUnits:[...s.preferredUnits],preferredTypes:[...(s.preferredTypes||[])],sizeScale:sizeScale(s.preferredUnits)}))};
+    return {name:f.name,team:f.team,function:f.type,menuOrder:f.menuOrder,coordinateSpace:f.directionSensitive?'local-right-forward':'world-xz',metresPerNode:f.metresPerNode,directionSensitive:f.directionSensitive,directionDegrees:f.directionDegrees,origin:{x:0,z:0},editor:{centreGrid:{...f.origin},autoPreference:!!f.autoPreference,autoPreferenceGradient:gradientValue(f)},slots:f.slots.map(s=>({...relative(s,f),editor:{grid:{x:s.x,z:s.z}},role:s.role,...(hasPreference(s)?{preference:s.preference}:{}),forceExclusive:s.forceExclusive===true,preferredUnits:[...s.preferredUnits],preferredTypes:[...(s.preferredTypes||[])],sizeScale:sizeScale(s.preferredUnits)}))};
   }
   const exportDocument = formations => ({format:'silica-formations',version:3,menu:{defaultOption:1,defaultLabel:"default"},grid:{nodesX:50,nodesZ:50,snap:0.5},coordinates:{unit:'metres',relativeTo:'formation.origin',positiveX:'right',positiveZ:'forward',fixedGrid:'screen-right=world+X; screen-up=world+Z'},formations:assignMenuOrders(formations).map(exportFormation)});
   function importDocument(data) {
@@ -115,7 +117,8 @@
       return {name:String(f.name||'Unnamed formation'),menuOrder:f.menuOrder,team,type:modern?f.function:['move','follow','commander','attack'].includes(f.type)?f.type:'move',metresPerNode:scale,directionSensitive:!!f.directionSensitive,directionDegrees:number(f.directionDegrees),origin,autoPreference:modern&&f.editor?.autoPreference===true,autoPreferenceGradient:gradientValue({autoPreferenceGradient:f.editor?.autoPreferenceGradient}),
         slots:f.slots.map(s=>{
           if(modern && (!Number.isFinite(s.x)||!Number.isFinite(s.z)||!roles[s.role]||!Array.isArray(s.preferredUnits)||s.preferredUnits.some(u=>!units[team].includes(u)))) throw Error('Invalid position, priority or preferred unit');
-          if(s.preferredTypes!==undefined&&(!Array.isArray(s.preferredTypes)||s.preferredTypes.some(t=>!unitTypes.includes(t))))throw Error('Invalid preferred unit type');
+          if(s.preferredTypes!==undefined&&(!Array.isArray(s.preferredTypes)||s.preferredTypes.some(t=>!unitTypes.includes(t)&&t!=='Harvester')))throw Error('Invalid preferred unit type');
+          if(s.forceExclusive!==undefined&&typeof s.forceExclusive!=="boolean")throw Error("Force exclusive must be true or false.");
           if(s.preference!==undefined&&!hasPreference(s))throw Error('Preference must be an integer from 0 (most) to 4 (least).');
           let p=modern?toGrid(s,frame):{x:legacy?number(s.x):number(s.x)/scale+origin.x,z:legacy?-number(s.z):number(s.z)/scale+origin.z};
           if(modern && s.editor?.grid) {
@@ -124,11 +127,32 @@
             p={...saved};
           }
           if(!Number.isFinite(p.x)||!Number.isFinite(p.z)||p.x < -25-1e-7 || p.x > 24+1e-7 || p.z < -25-1e-7 || p.z > 24+1e-7) throw Error('A position is outside the grid');
-          return migrateSlot({id:id(),x:p.x,z:p.z,preferredTypes:[...(s.preferredTypes||[])],role:roles[s.role]?s.role:'backup',...(hasPreference(s)?{preference:s.preference}:{}),preferredUnits:Array.isArray(s.preferredUnits)?[...new Set(s.preferredUnits.filter(u=>units[team].includes(u)))]:[]});
+          return migrateSlot({id:id(),x:p.x,z:p.z,forceExclusive:s.forceExclusive===true,preferredTypes:[...(s.preferredTypes||[])],role:roles[s.role]?s.role:'backup',...(hasPreference(s)?{preference:s.preference}:{}),preferredUnits:Array.isArray(s.preferredUnits)?[...new Set(s.preferredUnits.filter(u=>units[team].includes(u)))]:[]});
         })};
     }));
   }
-  const api={unitTypes,metadata,migrateSlot,preferenceMarker,assignMenuOrders,units,roles,preferences,gradientValue,hasPreference,appearance,applyAutoPreference,id,number,rounded,snap,sizeScale,relative,toGrid,newFormation,exportDocument,importDocument};
+  function autoBackups(f){
+    const level=s=>Math.min(3,hasPreference(s)?s.preference:s.role==='top'?0:s.role==='backup'?1:2);
+    const angle=(f.directionSensitive?f.directionDegrees:0)*Math.PI/180;
+    const forward={x:Math.sin(angle),z:Math.cos(angle)},right={x:Math.cos(angle),z:-Math.sin(angle)};
+    const added=[];let skipped=0;
+    const greens=f.slots.filter(s=>level(s)===0);
+    function add(source,dx,dz,preference,copy){
+      // Round without clamping: clamping at the boundary creates stacked dots.
+      const x=Math.round((source.x+dx)*2)/2,z=Math.round((source.z+dz)*2)/2;
+      if(x< -25||x>24||z< -25||z>24||f.slots.length>=4096||f.slots.some(s=>Math.hypot(s.x-x,s.z-z)<.7))return false;
+      const s={id:id(),x,z,forceExclusive:copy&&source.forceExclusive===true,role:preference===1?'backup':'last',preference,preferredUnits:copy?[...(source.preferredUnits||[])]:[],preferredTypes:copy?[...(source.preferredTypes||[])]:[]};
+      f.slots.push(s);added.push(s);return true;
+    }
+    // One and two grid intervals behind each green; preferences are exact copies.
+    for(const source of greens)for(const [distance,preference] of [[1,1],[2,2]])if(!add(source,-forward.x*distance,-forward.z*distance,preference,true))skipped++;
+    for(const source of f.slots.filter(s=>level(s)<3)){
+      const side=(source.x-f.origin.x)*right.x+(source.z-f.origin.z)*right.z<0?-1:1;
+      if(!add(source,right.x*side,right.z*side,4,false)&&!add(source,-right.x*side,-right.z*side,4,false))skipped++;
+    }
+    f.autoPreference=false;return {added,skipped};
+  }
+  const api={autoBackups,categoryOverrides,unitTypes,metadata,migrateSlot,preferenceMarker,assignMenuOrders,units,roles,preferences,gradientValue,hasPreference,appearance,applyAutoPreference,id,number,rounded,snap,sizeScale,relative,toGrid,newFormation,exportDocument,importDocument};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else root.FormationCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

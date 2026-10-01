@@ -87,6 +87,32 @@
       }
     }
     const actual=Math.min(count,pool.length),points=[];
+    if(tactical){
+      // Select entire mirror pairs, never individual points from an asymmetric packing.
+      const key=p=>p.x+','+p.z,lookup=new Set(pool.map(key));
+      const pairs=pool.filter(p=>p.x>origin.x&&lookup.has(key({x:2*origin.x-p.x,z:p.z})))
+        .map(p=>[p,{x:2*origin.x-p.x,z:p.z}]);
+      const axes=pool.filter(p=>p.x===origin.x).sort((a,b)=>b.z-a.z);
+      if(count%2&&axes.length)points.push(axes[0]);
+      const available=pairs.length*2+axes.length;
+      while(points.length+2<=count){
+        let best=-1,bestScore=-Infinity;
+        for(let i=0;i<pairs.length;i++){
+          const pair=pairs[i];if(!pair)continue;
+          if(Math.hypot(pair[0].x-pair[1].x,pair[0].z-pair[1].z)<.94)continue;
+          let score=Infinity;
+          for(const p of pair)for(const q of points)score=Math.min(score,(p.x-q.x)**2+(p.z-q.z)**2);
+          if(score<.94*.94-1e-8)continue;
+          if(!points.length)score=-Math.hypot(pair[0].x-origin.x,pair[0].z-origin.z);
+          if(score>bestScore){best=i;bestScore=score;}
+        }
+        if(best<0)break;
+        points.push(...pairs[best]);pairs[best]=null;
+      }
+      // Axis points are also symmetric, and can fill residual capacity without breaking it.
+      for(const p of axes)if(points.length<count&&points.every(q=>Math.hypot(p.x-q.x,p.z-q.z)>=.94-1e-8))points.push(p);
+      return {points,requested:count,available,effectiveSize:radius,fill:true,overlap:false,capacity:points.length};
+    }
     let overlap=false,capacity=0;
     if(fill&&actual){
       // Newly generated dots have no unit preference: radius .45 plus .02 stroke.
