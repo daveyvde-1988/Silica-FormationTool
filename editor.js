@@ -10,7 +10,7 @@ let lastNodePress=null;
 const inspectorOpen=new Map();
 function foldSection(key,title,nodes){
  const fold=document.createElement('details');fold.className='inspector-fold';
- fold.open=inspectorOpen.get(key)??true;
+ fold.open=inspectorOpen.get(key)??false;
  const summary=document.createElement('summary');summary.textContent=title;
  fold.append(summary,...nodes);
  fold.addEventListener('toggle',()=>{if(fold.isConnected)inspectorOpen.set(key,fold.open)});
@@ -174,7 +174,7 @@ $('export').onclick=async()=>{
  if(formations.some(f=>!f.name.trim())){status('Give every formation a name before exporting.',true);return}
  const snapshot=structuredClone(formations);$('export').disabled=true;
  try{
-  const entries=[{name:'silica-formations.json',blob:new Blob([JSON.stringify(C.exportDocument(snapshot),null,2)+'\n'],{type:'application/json'})}];
+  const entries=[{name:'silica-formations.json',blob:new Blob([C.stringifyDocument(C.exportDocument(snapshot))],{type:'application/json'})}];
   status('Packaging '+snapshot.length+' formations…');
   const archive=await FormationZip.create(entries);
   download(archive,'silica-formations.zip');

@@ -152,7 +152,25 @@
     }
     f.autoPreference=false;return {added,skipped};
   }
-  const api={autoBackups,categoryOverrides,unitTypes,metadata,migrateSlot,preferenceMarker,assignMenuOrders,units,roles,preferences,gradientValue,hasPreference,appearance,applyAutoPreference,id,number,rounded,snap,sizeScale,relative,toGrid,newFormation,exportDocument,importDocument};
+  // Keep formation settings expanded and each complete slot on one line.
+  // Normalize first to retain JSON.stringify's handling of optional fields.
+  function stringifyDocument(document) {
+    function format(value, depth, key) {
+      const indent='  '.repeat(depth), childIndent=indent+'  ';
+      if(Array.isArray(value)) {
+        if(!value.length)return '[]';
+        return '[\n'+value.map(item=>childIndent+(key==='slots'?JSON.stringify(item):format(item,depth+1,''))).join(',\n')+'\n'+indent+']';
+      }
+      if(value!==null && typeof value==='object') {
+        const entries=Object.entries(value);
+        if(!entries.length)return '{}';
+        return '{\n'+entries.map(([name,item])=>childIndent+JSON.stringify(name)+': '+format(item,depth+1,name)).join(',\n')+'\n'+indent+'}';
+      }
+      return JSON.stringify(value);
+    }
+    return format(JSON.parse(JSON.stringify(document)),0,'')+'\n';
+  }
+  const api={autoBackups,categoryOverrides,unitTypes,metadata,migrateSlot,preferenceMarker,assignMenuOrders,units,roles,preferences,gradientValue,hasPreference,appearance,applyAutoPreference,id,number,rounded,snap,sizeScale,relative,toGrid,newFormation,exportDocument,importDocument,stringifyDocument};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else root.FormationCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

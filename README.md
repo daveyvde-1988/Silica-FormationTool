@@ -2,7 +2,11 @@
 
 Open index.html in a browser; no installation or build is required. Rename the selected formation in Settings: the dropdown, title and command preview update immediately. Choose follow, move, commander or attack independently of its name. New formations use 20 metres per full grid interval (10 metres per half-grid snap). Loading preserves the saved scale.
 
-Load JSON replaces the current set. Export saves all formations; keep one formation to export a single-entry file. silica-formations example.json demonstrates a rotated follow formation at a custom scale and a fixed-orientation commander formation, including both repair units.
+Load JSON replaces the current set. Export saves all formations; keep one formation to export a single-entry file. The Files menu's Example JSON link downloads `silica-formations.json`: the supplied server formations with individual `preferredUnits` cleared. Type preferences, priorities, geometry and other settings are retained. The live server file is not modified.
+
+Exports keep version 3 and every existing field, with one complete slot per line and expanded formation settings. Existing JSON files still open with Load JSON; Export ZIP writes the compact layout automatically. Extract the JSON from that ZIP for the current mod or to reopen it in the editor. This is a whitespace change, not a new schema or a runtime movement optimization.
+
+All sidebar and position-detail menus start collapsed. Their open/closed state is retained while working in the current session.
 
 ## Updated controls and export
 
