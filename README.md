@@ -67,7 +67,7 @@ preferredUnits intentionally contains readable roster names, not prefab IDs. Res
 
 The Si_Formation project now loads this version-3 format. See ../README.md for installation, commands, assignment rules, curved-follow interpretation and API limitations. Si_Formation 2.1 supports these files; use /formationstatus to inspect your selections. Add an attack definition explicitly: the current user JSON has no attack entries.
 
-example-all-functions.json provides four separate Sol definitions (follow, move, commander and attack) for editing/testing; it is not automatically installed in UserData/Formations_cfg.
+example-all-functions.json provides four separate Sol definitions (follow, move, commander and attack) for editing/testing; it is not automatically installed in UserData/cfg/Formation.
 
 The editor keeps readable names. Runtime mappings use installed ObjectInfo identifiers; Flak Truck and Rocket Truck retain legacy editor labels mapped to Flak Car and Rocket Tank respectively.
 
@@ -126,7 +126,7 @@ Tactical fill replaces Tactical shape. It creates symmetric left/right pairs abo
 
 **Auto backup positions** adds yellow one grid interval and orange two intervals opposite the arrow direction from each green dot. Unit/type preferences are copied. It then adds unrestricted red positions beside the green/yellow/orange positions, preferring the outward side and trying the other side if occupied. Existing positions are retained. Boundary/occupied locations and the 4096-position limit are reported as skips. Automatic colour gradients are turned off. **Undo backup positions** restores the layout before the button was used.
 
-**Load game footprints** reads the updated mod's UserData/Formations_cfg/metadata/footprints.json, written after the server initializes game definitions. It contains actual cached local physical bounds. The editor remembers imported measurements when browser storage is available. A specific unit shows its width/length; several units or a category show the maximum width and maximum length among their preferred units. Missing measurements and unrestricted positions have a labelled dashed generic 8 × 4 m footprint, not invented game measurements. Metres per grid position immediately changes the rendered width/length. The existing dot still marks the assigned centre.
+**Load game footprints** reads the updated mod's UserData/cfg/Formation/metadata/footprints.json, written after the server initializes game definitions. It contains actual cached local physical bounds. The editor remembers imported measurements when browser storage is available. A specific unit shows its width/length; several units or a category show the maximum width and maximum length among their preferred units. Missing measurements and unrestricted positions have a labelled dashed generic 8 × 4 m footprint, not invented game measurements. Metres per grid position immediately changes the rendered width/length. The existing dot still marks the assigned centre.
 
 Editor logic checks and production allocator checks live in the mod's PriorityChecks directory. No browser or live-game validation is implied by these checks.
 
